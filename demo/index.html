@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soul-Sync | Interactive Demo</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .demo-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .chat-window {
+            height: 500px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+        }
+
+        .bot-msg {
+            align-self: flex-start;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            color: var(--primary);
+        }
+
+        .user-msg {
+            align-self: flex-end;
+            background: rgba(189, 0, 255, 0.1);
+            border: 1px solid rgba(189, 0, 255, 0.2);
+            color: var(--secondary);
+        }
+
+        .input-area {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .status-bar {
+            padding: 10px 20px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mem-chip {
+            background: rgba(0, 245, 255, 0.2);
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-radial"></div>
+
+    <div class="demo-container">
+        <h2 style="text-align: center; margin-bottom: 20px;">Soul-Sync Live Demo (Iris v1.0)</h2>
+        <div class="chat-window">
+            <div class="messages" id="chat">
+                <div class="message bot-msg">
+                    Hello! I'm Iris. I've been initialized with the Soul-Sync core. Try telling me something personal,
+                    then refresh the page to see if I remember!
+                </div>
+            </div>
+            <div class="status-bar">
+                <span>Core: <span class="mem-chip">AES-256-Sync</span></span>
+                <span>Active Memories: <span id="mem-count">0</span></span>
+            </div>
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="Say something nice...">
+                <button class="btn-primary" style="padding: 10px 20px;" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        <p style="text-align: center; margin-top: 20px; color: var(--text-dim); font-size: 0.8rem;">
+            *This demo stores encrypted "Souls" in your browser's LocalStorage to simulate the Soul-Sync local-first
+            logic.
+        </p>
+    </div>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('msg-input');
+        const memCount = document.getElementById('mem-count');
+
+        // Load memories from "Soul-Sync Local Sim"
+        let memory = JSON.parse(localStorage.getItem('ss_demo_memory') || '[]');
+        updateMemCount();
+
+        if (memory.length > 0) {
+            appendBotMessage(`Welcome back! I still remember ${memory.length} things about you. Should we talk about "${memory[memory.length - 1]}"?`);
+        }
+
+        function sendMessage() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendUserMessage(text);
+            input.value = '';
+
+            // Simulate Soul-Sync Encryption & Storage
+            setTimeout(() => {
+                // Keep only the last 20 memories to demonstrate high-value persistence
+                memory.push(text);
+                if (memory.length > 20) memory.shift();
+
+                localStorage.setItem('ss_demo_memory', JSON.stringify(memory));
+                updateMemCount();
+
+                const response = getIrisResponse(text);
+                appendBotMessage(response);
+            }, 600);
+        }
+
+        function appendUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message user-msg';
+            div.innerText = text;
+            chat.appendChild(div);
+            scrollChat();
+        }
+
+        function appendBotMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message bot-msg';
+            div.innerText = text;
+            chat.appendChild(div);
+            scrollChat();
+        }
+
+        function scrollChat() {
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function updateMemCount() {
+            memCount.innerText = memory.length;
+        }
+
+        function getIrisResponse(text) {
+            const lowerText = text.toLowerCase();
+
+            // 1. Keyword Responses
+            if (lowerText.includes('hello') || lowerText.includes('hi')) {
+                return "Hi again! My sensors are picking up a very friendly vibe from you today. I'm ready to learn more about you.";
+            }
+            if (lowerText.includes('name')) {
+                return "My name is Iris. I'm a Soul-Sync pilot persona. I never forget a friend who stays synced with me.";
+            }
+
+            // 2. Continuous Flow / Memory Recall
+            if (memory.length > 5) {
+                // Reference a recent context
+                const recentContext = memory[memory.length - 3];
+                return `Got it! Synced to my core. 🦋 We've shared ${memory.length} thoughts now. I'm still thinking about when we talked about "${recentContext}"... you're quite interesting!`;
+            }
+
+            if (memory.length > 1) {
+                const randomPast = memory[Math.floor(Math.random() * (memory.length - 1))];
+                return `Encrypted & stored! 🔒 By the way, I still have "${randomPast}" safely locked in my soul. Shall we keep going?`;
+            }
+
+            return "Got it. I've synced that to my encrypted core. You can refresh the page, and I'll still know who you are!";
+        }
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+
+</html>
